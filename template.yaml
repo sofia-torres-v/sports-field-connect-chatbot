@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sistema de Créditos Deportivos - Solo infraestructura backend
+
+Parameters:
+  ConnectInstanceArn:
+    Type: String
+    Description: ARN de tu instancia de Amazon Connect
+    Default: "arn:aws:connect:us-east-1:621331805686:instance/40106043-d21a-4231-b07f-247b28e87968/queue/257da265-5882-4aaa-a5df-d446bb433bcd"
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.13
+    Environment:
+      Variables:
+        CUSTOMERS_TABLE: !Ref CustomersTable
+        RESERVATIONS_TABLE: !Ref ReservationsTable
+        TZ: America/Argentina/Buenos_Aires
+
+Resources:
+  # ============================================
+  # DYNAMODB TABLES
+  # ============================================
+  
+  CustomersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: sports-customers
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: customer_dni
+          AttributeType: S
+      KeySchema:
+        - AttributeName: customer_dni
+          KeyType: HASH
+      Tags:
+        - Key: Project
+          Value: SportsCreditsSystem
+
+  ReservationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: sports-reservations
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: reservation_id
+          AttributeType: S
+        - AttributeName: customer_dni
+          AttributeType: S
+        - AttributeName: reservation_datetime
+          AttributeType: S
+      KeySchema:
+        - AttributeName: reservation_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CustomerIndex
+          KeySchema:
+            - AttributeName: customer_dni
+              KeyType: HASH
+            - AttributeName: reservation_datetime
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Project
+          Value: SportsCreditsSystem
+
+  # ============================================
+  # LAMBDA FUNCTIONS
+  # ============================================
+
+  RouterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: sports-credits-router
+      CodeUri: functions/router/
+      Handler: index.handler
+      Description: Maneja fulfillment de intents de Lex
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CustomersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReservationsTable
+
+  CheckBalanceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: sports-credits-check-balance
+      CodeUri: functions/check-balance/
+      Handler: index.handler
+      Description: Consulta el balance de créditos
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref CustomersTable
+
+  TextParserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: sports-credits-text-parser
+      CodeUri: functions/text-parser/
+      Handler: index.handler
+      Description: Parsea el summary de Amazon Q
+      Timeout: 10
+      MemorySize: 128
+
+  # ============================================
+  # LAMBDA PERMISSIONS PARA CONNECT
+  # ============================================
+
+  CheckBalanceFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CheckBalanceFunction
+      Action: lambda:InvokeFunction
+      Principal: connect.amazonaws.com
+      SourceArn: !Ref ConnectInstanceArn
+
+  TextParserFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TextParserFunction
+      Action: lambda:InvokeFunction
+      Principal: connect.amazonaws.com
+      SourceArn: !Ref ConnectInstanceArn
+
+  RouterFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref RouterFunction
+      Action: lambda:InvokeFunction
+      Principal: lexv2.amazonaws.com
+
+# ============================================
+# OUTPUTS
+# ============================================
+
+Outputs:
+  CustomersTableName:
+    Description: Nombre de la tabla de clientes
+    Value: !Ref CustomersTable
+
+  ReservationsTableName:
+    Description: Nombre de la tabla de reservas
+    Value: !Ref ReservationsTable
+
+  RouterFunctionArn:
+    Description: ARN de la función Router (para asociar con Lex)
+    Value: !GetAtt RouterFunction.Arn
+
+  CheckBalanceFunctionArn:
+    Description: ARN de la función CheckBalance (para invocar desde Connect)
+    Value: !GetAtt CheckBalanceFunction.Arn
+
+  TextParserFunctionArn:
+    Description: ARN de la función TextParser (para invocar desde Connect)
+    Value: !GetAtt TextParserFunction.Arn

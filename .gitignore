@@ -1,0 +1,19 @@
+# AWS SAM - Carpeta temporal, NO subirla
+.aws-sam/
+
+# Python - Archivos no sirven
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+
+# Visual Studio Code
+.vscode/
+
+# Secretos - NUNCA subir
+.env
+secrets.json
+
+# Sistema operativo
+.DS_Store

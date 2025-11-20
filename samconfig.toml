@@ -1,0 +1,11 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "sam-app-reservas"
+resolve_s3 = true
+s3_prefix = "sam-app-reservas"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "ConnectInstanceArn=\"arn:aws:connect:us-east-1:621331805686:instance/40106043-d21a-4231-b07f-247b28e87968\""
+image_repositories = []

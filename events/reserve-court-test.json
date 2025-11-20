@@ -1,0 +1,29 @@
+{
+  "sessionState": {
+    "intent": {
+      "name": "ReserveCourtIntent",
+      "slots": {
+        "sl_customer_dni": {
+          "value": {
+            "interpretedValue": "12345678"
+          }
+        },
+        "sl_court_type": {
+          "value": {
+            "interpretedValue": "fútbol"
+          }
+        },
+        "sl_date": {
+          "value": {
+            "interpretedValue": "2025-10-25"
+          }
+        },
+        "sl_time": {
+          "value": {
+            "interpretedValue": "18:00"
+          }
+        }
+      }
+    }
+  }
+}

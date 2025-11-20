@@ -1,0 +1,24 @@
+{
+  "sessionState": {
+    "intent": {
+      "name": "LoadCreditsIntent",
+      "slots": {
+        "sl_customer_dni": {
+          "value": {
+            "interpretedValue": "12345678"
+          }
+        },
+        "sl_amount": {
+          "value": {
+            "interpretedValue": "100"
+          }
+        },
+        "sl_payment_method": {
+          "value": {
+            "interpretedValue": "tarjeta"
+          }
+        }
+      }
+    }
+  }
+}
